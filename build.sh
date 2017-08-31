@@ -92,13 +92,31 @@ CROSS_PREFIX="${CROSS_DIR}/bin/${ARCH_TRIPLET}-"
 
 mkdir -p "${LIBMYSOFA_DIR}/dist-${ABI}/"{lib,include}
 
+# useless unfortunately
+#	-DCMAKE_AR=${CROSS_DIR}/bin/llvm-ar \
+#	-DCMAKE_C_COMPILER_AR=${CROSS_DIR}/bin/llvm-ar \
+#	-DCMAKE_CXX_COMPILER_AR=${CROSS_DIR}/bin/llvm-ar \
+#	-DCMAKE_RANLIB=${CROSS_PREFIX}ranlib \
+#	-DCMAKE_C_COMPILER_RANLIB=${CROSS_PREFIX}ranlib \
+#	-DCMAKE_CXX_COMPILER_RANLIB=${CROSS_PREFIX}ranlib \
+
 cmake	-DCMAKE_SYSTEM_NAME=Android \
 	-DCMAKE_SYSTEM_VERSION=${ANDROID_ABI} \
 	-DCMAKE_ANDROID_ARCH_ABI=${ABI} \
 	-DCMAKE_ANDROID_NDK=${NDK_PATH} \
 	-DCMAKE_ANDROID_STL_TYPE=gnustl_static \
+	-DCMAKE_C_COMPILER=${CROSS_PREFIX}clang \
+	-DCMAKE_CXX_COMPILER=${CROSS_PREFIX}clang++ \
 	-DCMAKE_BUILD_TYPE=Release \
 	.
+
+# hack: not proud but CMAKE_AR and CMAKE_RANLIB does not work
+for f in CMakeFiles/*/CMakeCXXCompiler.cmake CMakeFiles/*/CMakeCCompiler.cmake src/CMakeFiles/mysofa-static.dir/link.txt
+do
+  sed -e "s:/usr/bin/ranlib:${CROSS_PREFIX}ranlib:g" -i $f
+  sed -e "s:/usr/bin/ar:${CROSS_DIR}/bin/llvm-ar:g" -i $f
+done
+
 make -j16 mysofa-static
 cp src/libmysofa.a "${LIBMYSOFA_DIR}/dist-${ABI}/lib"
 cp src/hrtf/mysofa.h "${LIBMYSOFA_DIR}/dist-${ABI}/include"
